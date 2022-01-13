@@ -4,11 +4,13 @@ import CustomAuth, {
   HybridAggregateLoginParams,
   InitParams,
   LOGIN,
+  LOGIN_TYPE,
   SingleLoginParams,
   TORUS_METHOD,
   TorusAggregateLoginResponse,
   TorusHybridAggregateLoginResponse,
   TorusLoginResponse,
+  TorusSubVerifierInfo,
   UX_MODE,
 } from "@toruslabs/customauth";
 import {
@@ -41,8 +43,50 @@ import { parseCustomAuthResult } from "./utils";
 type ProviderFactory = BaseProvider<BaseProviderConfig, BaseProviderState, string>;
 
 interface LoginParams {
-  login_hint: string;
-  loginProvider: string;
+  /**
+   * Login provider you want to connect to.
+   * Refer to `LOGIN_TYPE`.
+   * or it can be a custom provider name if you are using getTorusKey or getAggregateTorusKey flow.
+   */
+  loginProvider: LOGIN_TYPE | string;
+
+  /**
+   * Pass the user's email address here while using the `passwordless`  login provider.
+   */
+  login_hint?: string;
+
+  /*
+   * getTorusKey and getAggregateTorusKey params
+   */
+
+  /**
+   * id of the user, required only for custom authentication flow.
+   */
+  verifierId?: string;
+
+  /**
+   * info about verifier and idToken, if you are using "getTorusKey" auth flow.
+   * Pass verifier and corresponding id token if you are using your aggregate key generation auth flow.
+   * connect function will set up provider with user's private key after validating all these tokens and return a single key.
+   * It is not required if you are using default auth flow.
+   *
+   * Note: Verifiers passed in this array should match with the ones passed in adapter's constructor.
+   */
+  verifierInfo?: TorusSubVerifierInfo;
+
+  /**
+   *  main verifier name, if you are using "getAggregateTorusKey" auth flow.
+   */
+  mainVerifier?: string;
+  /**
+   * info about your sub verifiers and corresponding idTokens, if you are using "getAggregateTorusKey" auth flow.
+   * Pass array of verifier and corresponding id token if you are using your aggregate key generation auth flow.
+   * connect function will set up provider with user's private key after validating all these tokens and return a single key.
+   * It is not required if you are using default auth flow.
+   *
+   * Note: Verifiers passed in this array should match with the ones passed in adapter's constructor.
+   */
+  subVerifierInfoArray: TorusSubVerifierInfo[];
 }
 
 const DEFAULT_CUSTOM_AUTH_RES: CustomAuthResult = {
@@ -248,27 +292,62 @@ export class CustomAuthAdapter extends BaseAdapter<LoginParams> {
     let finalPrivKey = this.customAuthResult?.privateKey;
 
     if (!finalPrivKey && params) {
-      if (!this.loginSettings?.loginProviderConfig?.[params.loginProvider]) {
+      const loginConfig = this.loginSettings?.loginProviderConfig?.[params.loginProvider];
+
+      if (!loginConfig) {
         throw new Error(`Login provider ${params.loginProvider} settings not found in loginSettings`);
       }
-      const loginConfig = this.loginSettings?.loginProviderConfig?.[params.loginProvider];
-      let result: TorusLoginResponse | TorusHybridAggregateLoginResponse | TorusAggregateLoginResponse;
-      if (loginConfig.method === TORUS_METHOD.TRIGGER_LOGIN) {
-        result = await this.customAuthInstance.triggerLogin(loginConfig.args as SingleLoginParams);
-      } else if (loginConfig.method === TORUS_METHOD.TRIGGER_AGGREGATE_LOGIN) {
-        result = await this.customAuthInstance.triggerAggregateLogin(loginConfig.args as AggregateLoginParams);
-      } else if (loginConfig.method === TORUS_METHOD.TRIGGER_AGGREGATE_HYBRID_LOGIN) {
-        result = await this.customAuthInstance.triggerHybridAggregateLogin(loginConfig.args as HybridAggregateLoginParams);
+      if (params && (params?.verifierInfo?.idToken || params?.subVerifierInfoArray?.length)) {
+        if (!params?.verifierId) {
+          throw new Error(`idToken is required for ${loginConfig.method}`);
+        }
+        if (loginConfig.method === "getTorusKey") {
+          if (!params?.verifierInfo?.idToken) {
+            throw new Error(`idToken is required for ${loginConfig.method} in verifierInfo`);
+          }
+          if (!params?.verifierInfo?.verifier) {
+            throw new Error(`verifier is required for ${loginConfig.method} in verifierInfo`);
+          }
+          const torusKey = await this.customAuthInstance.getTorusKey(
+            params?.verifierInfo?.verifier,
+            params.verifierId,
+            { verifier_id: params.verifierId },
+            params.verifierInfo?.idToken
+          );
+          finalPrivKey = torusKey.privateKey;
+        } else if (loginConfig.method === "getAggregateTorusKey") {
+          if (!params?.mainVerifier) {
+            throw new Error(`mainVerifier is required for ${loginConfig.method} in loginParams`);
+          }
+          if (!params?.subVerifierInfoArray?.length) {
+            throw new Error(`subVerifierInfoArray is required for ${loginConfig.method} in loginParams`);
+          }
+          const torusKey = await this.customAuthInstance.getAggregateTorusKey(params.mainVerifier, params.verifierId, params.subVerifierInfoArray);
+          finalPrivKey = torusKey.privateKey;
+        } else {
+          throw WalletLoginError.invalidParams(
+            `Invalid method ${loginConfig.method} found in loginSettings, this method is not supported for custom auth flow`
+          );
+        }
       } else {
-        throw WalletLoginError.connectionError(`Unsupported CustomAuth method type: ${loginConfig.method}`);
-      }
+        let result: TorusLoginResponse | TorusHybridAggregateLoginResponse | TorusAggregateLoginResponse;
+        if (loginConfig.method === TORUS_METHOD.TRIGGER_LOGIN) {
+          result = await this.customAuthInstance.triggerLogin(loginConfig.args as SingleLoginParams);
+        } else if (loginConfig.method === TORUS_METHOD.TRIGGER_AGGREGATE_LOGIN) {
+          result = await this.customAuthInstance.triggerAggregateLogin(loginConfig.args as AggregateLoginParams);
+        } else if (loginConfig.method === TORUS_METHOD.TRIGGER_AGGREGATE_HYBRID_LOGIN) {
+          result = await this.customAuthInstance.triggerHybridAggregateLogin(loginConfig.args as HybridAggregateLoginParams);
+        } else {
+          throw WalletLoginError.connectionError(`Unsupported CustomAuth method type: ${loginConfig.method}`);
+        }
 
-      if (this.adapterSettings?.uxMode === UX_MODE.POPUP) {
-        const parsedResult = parseCustomAuthResult({ method: loginConfig.method, result, state: {}, args: loginConfig.args });
-        this._syncCustomAuthResult(parsedResult as Record<string, any>);
-        finalPrivKey = parsedResult.privateKey;
-      } else if (this.adapterSettings?.uxMode === UX_MODE.REDIRECT) {
-        return;
+        if (this.adapterSettings?.uxMode === UX_MODE.POPUP) {
+          const parsedResult = parseCustomAuthResult({ method: loginConfig.method, result, state: {}, args: loginConfig.args });
+          this._syncCustomAuthResult(parsedResult as Record<string, any>);
+          finalPrivKey = parsedResult.privateKey;
+        } else if (this.adapterSettings?.uxMode === UX_MODE.REDIRECT) {
+          return;
+        }
       }
     }
     log.debug("final private key", finalPrivKey);

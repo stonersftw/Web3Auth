@@ -15,7 +15,14 @@ export type CustomAuthResult = {
   typeOfLogin: LOGIN_TYPE;
 } & TorusKeyPub;
 
+export declare type CustomLoginDetails = {
+  method: "getTorusKey" | "getAggregateTorusKey";
+};
 export interface LoginSettings {
+  loginProviderConfig: Record<string, CustomLoginDetails | LoginDetails>;
+}
+
+export interface CustomLoginSettings {
   loginProviderConfig: Record<string, LoginDetails>;
 }
 
