@@ -6,6 +6,7 @@ import type { Web3AuthCore } from "@web3auth/core";
 import log from "loglevel";
 import { render } from "react-dom";
 
+import QrCodeDecoder from "./components/QrCodeDecoder";
 import { WALLET_CONNECT_PLUGIN_STATUS, WalletConnectPluginState } from "./interfaces";
 
 function createWrapper(): HTMLDivElement {
@@ -53,7 +54,7 @@ export default class WalletConnectPlugin {
         return resolve();
       });
 
-      render(<div>helo</div>, this.wrapper);
+      render(<QrCodeDecoder stateListener={this.stateEmitter} onScanResult={(opts: { uri: string }) => this.onScanResult(opts)} />, this.wrapper);
     });
   }
 

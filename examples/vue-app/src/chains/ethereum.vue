@@ -25,6 +25,7 @@
 <script lang="ts">
 import { ADAPTER_STATUS, CHAIN_NAMESPACES, CONNECTED_EVENT_DATA, CustomChainConfig, LoginMethodConfig } from "@web3auth/base";
 import { OpenloginAdapter } from "@web3auth/openlogin-adapter";
+import WalletConnectPlugin from "@web3auth/wallet-connect-plugin";
 // import { LOGIN_MODAL_EVENTS } from "@web3auth/ui";
 import { Web3Auth } from "@web3auth/web3auth";
 import Vue from "vue";
@@ -134,6 +135,7 @@ export default Vue.extend({
       web3auth.on(ADAPTER_STATUS.CONNECTED, (data: CONNECTED_EVENT_DATA) => {
         this.console("connected to wallet", data);
         this.provider = web3auth.provider;
+        const walletPlugin = new WalletConnectPlugin({ provider: this.provider });
         this.loginButtonStatus = "Logged in";
       });
       web3auth.on(ADAPTER_STATUS.CONNECTING, () => {
