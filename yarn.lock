@@ -2524,11 +2524,11 @@
   integrity sha512-RbzJvlNzmRq5c3O09UipeuXno4tA1FE6ikOjxZK0tuxVv3412l64l5t1W5pj4+rJq9vpkm/kwiR07aZXnsKPxw==
 
 "@toruslabs/base-controllers@^2.0.0", "@toruslabs/base-controllers@^2.0.2":
-  version "2.0.2"
-  resolved "https://registry.yarnpkg.com/@toruslabs/base-controllers/-/base-controllers-2.0.2.tgz#48f35ea336f61b0e2ea21631547b777754c4c7d7"
-  integrity sha512-ulS7WH72kAtoiqd8ep7RkTY7/mD+RnWAfygZRF2NaSSeXVlRu9jiBJCTGDkRcDh9QHp1Wfn3CJFqBOLfR53KJA==
+  version "2.2.1"
+  resolved "https://registry.yarnpkg.com/@toruslabs/base-controllers/-/base-controllers-2.2.1.tgz#6c4c9d26b9f1b24d75461550339ad5c663b7d252"
+  integrity sha512-AHp42kXirGSoHmTgPXoL7i3lUNqmHJfkmVWu3315M3hIjer3mAVwW2BEBO0sMePUcWTrMVWUAdsTUV7gYtx2aA==
   dependencies:
-    "@toruslabs/broadcast-channel" "^5.0.2"
+    "@toruslabs/broadcast-channel" "^6.0.0"
     "@toruslabs/http-helpers" "^3.0.0"
     "@toruslabs/openlogin-jrpc" "^2.1.0"
     async-mutex "^0.3.2"
@@ -2540,10 +2540,10 @@
     lodash "^4.17.21"
     loglevel "^1.8.0"
 
-"@toruslabs/broadcast-channel@^5.0.2":
-  version "5.0.2"
-  resolved "https://registry.yarnpkg.com/@toruslabs/broadcast-channel/-/broadcast-channel-5.0.2.tgz#90117e37bf0937793995740516713a305b0812f7"
-  integrity sha512-B4kMZfcSZWzIi81gfb7deHFOa55RvCTUtIhCvTrGVobo8WZ8cCJC/4bLm1AbzgiPky8dbh8cb7mewuvnqaZpbA==
+"@toruslabs/broadcast-channel@^6.0.0":
+  version "6.0.0"
+  resolved "https://registry.yarnpkg.com/@toruslabs/broadcast-channel/-/broadcast-channel-6.0.0.tgz#0ac27b192c7ac115f5a3edbd459fcc5337b4984e"
+  integrity sha512-bDS5VqDDzHoL4mvhRMyRRz+gKqo8Lx+qPCVhjY+brKU+X0odQ4M4bKA5ktyUBnEo290d5ui2vpWRp7qJ5E28MQ==
   dependencies:
     "@babel/runtime" "^7.17.9"
     "@toruslabs/eccrypto" "^1.1.8"
